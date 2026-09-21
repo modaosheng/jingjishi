@@ -1,0 +1,61 @@
+# ══════════════════════════════════════════════════════════════
+#  经师 AI · 中级经济师备考 App —— 仓库忽略规则
+#  仓库根目录 = 工作区根目录（PRD 与代码放在一起，便于文档与实现同步）
+# ══════════════════════════════════════════════════════════════
+
+# ── 依赖 ──────────────────────────────────────────────────────
+node_modules/
+**/node_modules/
+
+# ── Web 构建产物 ──────────────────────────────────────────────
+dist/
+dist-ssr/
+*.local
+
+# ── ⚠️ 密钥与本地配置：绝不提交 ────────────────────────────────
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# ── Capacitor / Android ──────────────────────────────────────
+# ⚠️ android/ 目录**本身要提交**（含 gradle wrapper 与原生配置），
+#    但构建产物、本地环境文件与签名文件绝不能提交。
+android/build/
+app/android/build/
+app/android/app/build/
+app/android/.gradle/
+android/.gradle/
+app/android/local.properties
+android/local.properties
+app/android/.idea/
+android/.idea/
+# cap sync 会重新生成这两个，不需要入库
+app/android/app/src/main/assets/public/
+app/android/app/src/main/assets/capacitor.config.json
+
+# 签名与安装包（⚠️ keystore 一旦泄露 = 应用被冒名发布）
+*.apk
+*.aab
+*.keystore
+*.jks
+*.pepk
+
+# ── 编辑器与系统 ──────────────────────────────────────────────
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# ── 日志与临时文件 ────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-error.log*
+.cache/
+.temp/
+
+# ── 工具本地状态（避免把助手记忆库推上仓库） ────────────────────
+.workbuddy/

@@ -1,0 +1,71 @@
+# 依赖
+node_modules/
+server/node_modules/
+
+# 构建产物
+dist/
+dist-ssr/
+server/dist/
+*.local
+
+# ------------------------------------------------------------------
+# Capacitor / Android
+# ------------------------------------------------------------------
+# ⚠️ android/ 目录本身**要提交**（含原生配置与 gradle 脚本），
+#    但构建产物与本地环境文件不能提交。
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/.idea/
+android/app/release/
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# ------------------------------------------------------------------
+# ⚠️ 密钥与本地配置：绝不提交
+# ------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+server/.env
+server/.env.*
+!server/.env.example
+
+# 编辑器与系统
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# 日志
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# 移动端
+# ⚠️ `android/` 目录**必须入库** —— 它不是纯构建产物，而是**源码**：
+#    含 gradle 配置、AndroidManifest、签名配置、gradle wrapper。
+#    GitHub Actions 云构建完全依赖这些文件（见 .github/workflows/android.yml）。
+#    排除整个 android/ 会导致 CI 直接失败：找不到 gradlew。
+#    真正的产物级排除规则见 app/android/.gitignore（由 Capacitor 生成，已补充签名相关）。
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+android/.idea/
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/keystore.properties
+android/**/*.keystore
+android/**/*.jks
+
+# iOS 尚未启用
+ios/

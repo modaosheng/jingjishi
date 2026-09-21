@@ -1,0 +1,107 @@
+/**
+ * 设计令牌 —— 严格对齐 PRD §10 UI 设计规范
+ * 所有组件必须引用变量，禁止裸值
+ */
+
+:root {
+  /* 品牌与语义色 */
+  --color-primary: #2b5ce6;
+  --color-primary-light: #e8eefe;
+  --color-primary-dark: #1f47bd;
+  --color-success: #16a34a;
+  --color-warning: #f59e0b;
+  --color-danger: #dc2626;
+  --color-info: #378add;
+
+  /* 背景 */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f7fa;
+  --bg-tertiary: #eef1f6;
+
+  /* 文本（对比度：主文本 ≥7:1，次要 ≥4.5:1） */
+  --text-primary: #1a1d26;
+  --text-secondary: #5a6172;
+  --text-tertiary: #9aa1b1;
+  --text-inverse: #ffffff;
+
+  /* 边框 */
+  --border-color: rgba(26, 29, 38, 0.08);
+  --border-strong: rgba(26, 29, 38, 0.16);
+
+  /* 掌握度五档（PRD M2-F1：必须同时配图标，不依赖颜色） */
+  --mastery-0: #d4d7de; /* 未学 */
+  --mastery-1: #dc2626; /* 薄弱 */
+  --mastery-2: #f59e0b; /* 一般 */
+  --mastery-3: #65a30d; /* 良好 */
+  --mastery-4: #16a34a; /* 掌握 */
+
+  /* 可信度等级（PRD §8.6.1） */
+  --src-s: #185fa5; /* 官方 */
+  --src-a: #16a34a; /* 教研已审 */
+  --src-b: #ba7517; /* AI 生成已校验 */
+  --src-c: #6b7280; /* 自建待验 */
+
+  /* 字体 */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', 'Source Han Sans SC', sans-serif;
+  --fs-title: 18px;
+  --fs-body: 16px;
+  --fs-aux: 14px;
+  --fs-caption: 13px;
+  --lh-body: 1.6;
+  --lh-read: 1.75; /* 长文阅读用 */
+
+  /* 间距：8pt 栅格 */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+
+  /* 圆角 */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-sheet: 24px;
+
+  /* 触控目标（PRD §10.1） */
+  --tap-min: 44px;
+  --option-h: 56px;
+  --btn-h: 52px;
+  --tabbar-h: 56px;
+
+  /* 层级 */
+  --z-drawer: 1000;
+  --z-modal: 1100;
+  --z-toast: 1200;
+
+  /* 安全区 */
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+}
+
+/* 深色模式：夜间刷题刚需 */
+:root[data-theme='dark'] {
+  --color-primary: #5b82f0;
+  --color-primary-light: #1e2a47;
+  --color-primary-dark: #7d9bf5;
+
+  --bg-primary: #12141a;
+  --bg-secondary: #1c1f27;
+  --bg-tertiary: #252932;
+
+  --text-primary: #e8eaed;
+  --text-secondary: #a3a9b5;
+  --text-tertiary: #6f7684;
+
+  --border-color: rgba(232, 234, 237, 0.1);
+  --border-strong: rgba(232, 234, 237, 0.2);
+
+  --mastery-0: #3a3f4b;
+  --mastery-1: #f07b7b;
+  --mastery-2: #f5b545;
+  --mastery-3: #8dc63d;
+  --mastery-4: #4ade80;
+}

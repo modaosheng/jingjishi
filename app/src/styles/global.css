@@ -1,0 +1,129 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  /* 禁止长按选中与系统菜单（答题场景） */
+  -webkit-touch-callout: none;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+  font-weight: 500;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* 页面容器：底部留出 TabBar 与安全区 */
+.page {
+  min-height: 100%;
+  padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + var(--sp-4));
+  background: var(--bg-secondary);
+}
+
+.page--no-tab {
+  padding-bottom: calc(var(--safe-bottom) + var(--sp-4));
+}
+
+/* 通用卡片 */
+.card {
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+  padding: var(--sp-4);
+}
+
+/* ---------- Vant 主题对齐设计令牌 ---------- */
+:root {
+  --van-primary-color: var(--color-primary);
+  --van-success-color: var(--color-success);
+  --van-warning-color: var(--color-warning);
+  --van-danger-color: var(--color-danger);
+  --van-text-color: var(--text-primary);
+  --van-text-color-2: var(--text-secondary);
+  --van-text-color-3: var(--text-tertiary);
+  --van-background: var(--bg-primary);
+  --van-background-2: var(--bg-secondary);
+  --van-border-color: var(--border-color);
+  --van-cell-background: var(--bg-primary);
+  --van-nav-bar-background: var(--bg-primary);
+  --van-tabbar-background: var(--bg-primary);
+  --van-tabbar-height: var(--tabbar-h);
+  --van-button-default-height: var(--btn-h);
+  --van-cell-font-size: var(--fs-body);
+  --van-font-size-md: var(--fs-body);
+  --van-radius-md: var(--radius-md);
+}
+
+:root[data-theme='dark'] {
+  --van-cell-background: var(--bg-secondary);
+  --van-nav-bar-background: var(--bg-secondary);
+  --van-tabbar-background: var(--bg-secondary);
+}
+
+/* ---------- 工具类 ---------- */
+.flex {
+  display: flex;
+}
+.flex-1 {
+  flex: 1;
+}
+.items-center {
+  align-items: center;
+}
+.justify-between {
+  justify-content: space-between;
+}
+.gap-2 {
+  gap: var(--sp-2);
+}
+.gap-3 {
+  gap: var(--sp-3);
+}
+.gap-4 {
+  gap: var(--sp-4);
+}
+.text-aux {
+  font-size: var(--fs-aux);
+  color: var(--text-secondary);
+}
+.text-caption {
+  font-size: var(--fs-caption);
+  color: var(--text-tertiary);
+}
+
+/* 无障碍：屏幕阅读器专用 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

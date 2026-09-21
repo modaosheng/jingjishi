@@ -1,0 +1,95 @@
+apply plugin: 'com.android.application'
+
+// ══════════════════════════════════════════════════════════════
+//  签名配置（可选，用于 release 构建）
+// ══════════════════════════════════════════════════════════════
+//  ⚠️ `keystore.properties` 与 `release.keystore` **绝不入库**
+//     （已写入根目录 .gitignore）。
+//
+//  设计要点：**没有签名文件时不报错**。
+//    本地开发只跑 debug 包，无需配置签名；CI 构建 release 时由
+//    workflow 从 Secrets 还原这两个文件。这样同一份 build.gradle
+//    在"本地无签名"与"CI 有签名"两种环境下都能正常工作。
+//
+//  签名文件生成方法见 .github/workflows/android.yml 末尾说明。
+def keystorePropsFile = rootProject.file("keystore.properties")
+def hasSigningConfig = keystorePropsFile.exists()
+def keystoreProps = new Properties()
+if (hasSigningConfig) {
+    keystoreProps.load(new FileInputStream(keystorePropsFile))
+}
+
+android {
+    namespace = "cn.jingshi.ai"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "cn.jingshi.ai"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+
+    // 仅在存在签名配置时声明，避免无签名环境下 gradle 配置阶段报错
+    if (hasSigningConfig) {
+        signingConfigs {
+            release {
+                storeFile rootProject.file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (hasSigningConfig) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+
+    compileOptions {
+        // Capacitor 8 要求 Java 17 字节码级别
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}
