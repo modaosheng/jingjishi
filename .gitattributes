@@ -1,0 +1,53 @@
+# ══════════════════════════════════════════════════════════════
+#  行尾与二进制文件规范化
+# ══════════════════════════════════════════════════════════════
+#
+#  🔴 为什么必须有这个文件：
+#
+#     `gradlew` 是 **shell 脚本**，CI 在 Linux 上执行。
+#     如果它被转成 CRLF（Windows 行尾），Linux 会报：
+#
+#         /bin/sh^M: bad interpreter: No such file or directory
+#
+#     表现是"云构建莫名其妙失败"，而本地 Windows 上一切正常 ——
+#     这类问题排查起来极其耗时。本文件从源头锁死行尾，
+#     保证 **Windows 开发 / Linux CI 行为一致**。
+#
+#  ⚠️ 不要在没读上面这段话的情况下修改本文件。
+# ══════════════════════════════════════════════════════════════
+
+# 默认：文本文件统一 LF（CI 在 Linux，LF 是安全默认）
+* text=auto eol=lf
+
+# ── Shell 脚本必须 LF，否则 Linux 无法执行 ────────────────────
+gradlew text eol=lf
+*.sh text eol=lf
+*.mjs text eol=lf
+*.cjs text eol=lf
+
+# ── Windows 批处理必须 CRLF，否则 cmd.exe 解析异常 ─────────────
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# ── 二进制：禁止任何行尾转换（转换会损坏文件） ────────────────
+*.jar binary
+*.keystore binary
+*.jks binary
+*.apk binary
+*.aab binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.pdf binary
+*.zip binary
+
+# ── 语言与 lint 识别 ─────────────────────────────────────────
+*.ts linguist-language=TypeScript
+*.vue linguist-language=Vue
