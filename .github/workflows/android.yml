@@ -88,11 +88,41 @@ jobs:
 
       - name: 配置 Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # ══════════════════════════════════════════════════════════════
+          #  ⚠️ 这一行**必须保留**，删掉会导致构建失败。
+          #
+          #  根因（2026-09-15 起的上游断裂）：
+          #    该 action 的 `packages` 默认值是 `"tools platform-tools"`。
+          #    而 Google 已从 SDK 仓库索引（repository2-3.xml）中移除了
+          #    废弃的 `tools` 包 —— sdkmanager 找不到它，直接以退出码 1 失败：
+          #
+          #        Warning: Failed to find package 'tools'
+          #        Error: The process '.../sdkmanager' failed with exit code 1
+          #
+          #  上游跟踪：android-actions/setup-android#537
+          #
+          #  修法：显式传入 packages，覆盖掉那个过期的默认值。
+          #  （即使上游修好了默认值，显式指定依然正确，不会冲突。）
+          # ══════════════════════════════════════════════════════════════
+          packages: 'platform-tools'
+
+      - name: 接受 Android SDK 许可
+        # ⚠️ 未接受许可时，sdkmanager 会停在交互式确认上等待输入 ——
+        #    CI 里没有 stdin，表现是 job 一直挂到最后超时（而不是报错），
+        #    排查起来很费时间。显式接受一次，一劳永逸。
+        run: yes | sdkmanager --licenses > /dev/null 2>&1 || true
+        working-directory: .
 
       - name: 安装所需 SDK 组件
-        # runner 预装的 platform 版本可能不含 36，显式安装以保证稳定
+        # ⚠️ 同样**不要**在这里请求 `tools`（原因见上一步注释）。
+        #    36 对应 variables.gradle 的 compileSdk/targetSdk；
+        #    同时装 35 以防 AGP 的默认 build-tools 版本与之不同。
         run: |
-          sdkmanager --install "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+          for pkg in "platforms;android-36" "build-tools;36.0.0" "build-tools;35.0.0"; do
+            echo "→ 安装 $pkg"
+            sdkmanager --install "$pkg" 2>&1 | tail -2 || echo "  ⚠️ $pkg 跳过（该版本可能不存在）"
+          done
         working-directory: .
 
       # ── 以下三步与本地开发完全一致，保证「本地能过 → CI 也能过」──
@@ -176,9 +206,21 @@ jobs:
 
       - name: 配置 Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # ⚠️ 必须显式指定，覆盖含 `tools` 的过期默认值（详见 debug job 注释）
+          packages: 'platform-tools'
+
+      - name: 接受 Android SDK 许可
+        run: yes | sdkmanager --licenses > /dev/null 2>&1 || true
+        working-directory: .
 
       - name: 安装所需 SDK 组件
-        run: sdkmanager --install "platforms;android-36" "build-tools;36.0.0"
+        # ⚠️ 不要请求 `tools`（该包已于 2026-09-15 从 SDK 仓库移除）
+        run: |
+          for pkg in "platforms;android-36" "build-tools;36.0.0" "build-tools;35.0.0"; do
+            echo "→ 安装 $pkg"
+            sdkmanager --install "$pkg" 2>&1 | tail -2 || echo "  ⚠️ $pkg 跳过（该版本可能不存在）"
+          done
         working-directory: .
 
       - name: 校验签名 Secrets 是否齐备
