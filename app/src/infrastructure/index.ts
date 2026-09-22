@@ -11,6 +11,19 @@ let current: DataSource | null = null
 let fallbackReason = ''
 
 /**
+ * 启动兜底是否已经定局。
+ *
+ * ⚠️ 为什么需要这个标志：`initDataSource()` 可能很慢，启动流程等不了那么久，
+ *    于是会在超时后用 `forceMockDataSource()` 先把应用拉起来。
+ *    而**原来那次 initDataSource() 仍在后台继续跑** —— 如果它稍后成功了，
+ *    就会把数据源从 Mock 换成 SQLite，出现「界面已经用 Mock 跑起来，
+ *    中途数据源被换掉」的错乱。
+ *
+ *    定局后一律不再改写，保证一次启动内数据源稳定。
+ */
+let bootSettled = false
+
+/**
  * 环境诊断：提前判断 OPFS 不可用的常见原因，给出比原始报错更准确、可操作的原因
  *
  * 最常见的情况是「非安全上下文」——用 http 协议经局域网 IP 在手机上访问开发服务器时，
@@ -49,6 +62,8 @@ export async function initDataSource(): Promise<DataSource> {
       try {
         const { sqliteDataSource } = await import('./db/sqlite')
         await sqliteDataSource.init()
+        // 兜底已定局 → 保持现状，不覆盖（见 bootSettled 的说明）
+        if (bootSettled && current) return current
         current = sqliteDataSource
         console.info('[DataSource] SQLite(OPFS) 已就绪')
         return current
@@ -59,6 +74,7 @@ export async function initDataSource(): Promise<DataSource> {
     }
   }
 
+  if (bootSettled && current) return current
   const { mockDataSource } = await import('./mock/mockDataSource')
   await mockDataSource.init()
   current = mockDataSource
@@ -89,6 +105,8 @@ export async function forceMockDataSource(reason: string): Promise<DataSource> {
   await mockDataSource.init()
   current = mockDataSource
   fallbackReason = reason
+  // 标记定局：此后 initDataSource() 即使成功也不再改写数据源
+  bootSettled = true
   console.warn('[DataSource] 启动兜底触发，已切换为 Mock：', reason)
   return current
 }

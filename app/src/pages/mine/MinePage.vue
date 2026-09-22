@@ -5,6 +5,7 @@ import { getDataSource, getDataSourceInfo } from '@/infrastructure'
 import { getServices } from '@/services'
 import { adFreeDaysLeft, loadAdFree } from '@/domain/ads/releaseEngine'
 import { revokeConsent } from '@/domain/privacy/consent'
+import { clearBootLog, formatBootTime, readBootLog, type BootLogEntry } from '@/domain/boot/bootLog'
 
 const router = useRouter()
 const ds = () => getDataSource()
@@ -17,6 +18,14 @@ const snapshots = ref<Array<{ id: number; type: string; createdAt: number; stats
 
 /** 去广告状态摘要（买断 / 限期体验），驱动「奖励中心」入口的副标题 */
 const adFreeLabel = ref('')
+
+/**
+ * 启动日志：记录上一次启动各阶段。
+ * 真机上的启动问题只在特定机型复现，控制台又拿不到，
+ * 所以把过程留在这里供回看 —— 这是排查「启动卡住」的主要依据。
+ */
+const bootLog = ref<BootLogEntry[]>([])
+const showBootLog = ref(false)
 
 onMounted(async () => {
   stats.value = await ds().answerLogs.stats()
@@ -34,7 +43,14 @@ onMounted(async () => {
     const left = adFreeDaysLeft()
     adFreeLabel.value = left > 0 ? `免广告 · 剩 ${left} 天` : ''
   }
+  bootLog.value = readBootLog()
 })
+
+function onClearBootLog() {
+  clearBootLog()
+  bootLog.value = []
+  showBootLog.value = false
+}
 
 function toggleTheme() {
   theme.value = theme.value === 'dark' ? 'light' : 'dark'
@@ -272,6 +288,19 @@ async function resetAll() {
         <span>降级原因</span>
         <span class="text-caption">{{ info.fallbackReason }}</span>
       </div>
+
+      <!-- 启动日志：真机启动异常时的主要排查依据 -->
+      <div v-if="bootLog.length" class="entry entry--link" @click="showBootLog = !showBootLog">
+        <span>启动日志</span>
+        <span class="entry__hint">{{ showBootLog ? '收起' : `查看（${bootLog.length} 条）` }}</span>
+      </div>
+      <div v-if="showBootLog" class="bootlog">
+        <div v-for="(e, i) in bootLog" :key="i" class="bootlog__row">
+          <span class="bootlog__t">{{ formatBootTime(e.t) }}</span>
+          <span class="bootlog__m">{{ e.m }}</span>
+        </div>
+        <button class="bootlog__clear" @click="onClearBootLog">清空日志</button>
+      </div>
     </section>
 
     <section class="card block">
@@ -370,6 +399,39 @@ async function resetAll() {
 }
 .adfree-tip {
   margin-top: var(--sp-2);
+}
+.bootlog {
+  margin-top: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  max-height: 240px;
+  overflow: auto;
+}
+.bootlog__row {
+  display: flex;
+  gap: var(--sp-2);
+  font-size: var(--fs-caption);
+  color: var(--text-secondary);
+  line-height: 1.8;
+}
+.bootlog__t {
+  flex-shrink: 0;
+  color: var(--text-tertiary, var(--text-secondary));
+  font-variant-numeric: tabular-nums;
+}
+.bootlog__m {
+  word-break: break-all;
+}
+.bootlog__clear {
+  width: 100%;
+  margin-top: var(--sp-2);
+  padding: var(--sp-2);
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: var(--fs-caption);
 }
 .switch {
   width: 48px;

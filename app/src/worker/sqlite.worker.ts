@@ -19,7 +19,9 @@ type Req =
   | { id: number; type: 'run'; sql: string; params?: unknown[] }
   | { id: number; type: 'batch'; statements: Array<{ sql: string; params?: unknown[] }> }
 
-type Res = { id: number; ok: true; rows?: unknown[]; changes?: number } | { id: number; ok: false; error: string }
+type Res =
+  | { id: number; ok: true; rows?: unknown[]; changes?: number; note?: string }
+  | { id: number; ok: false; error: string }
 
 interface Db {
   exec: (opts: unknown) => void
@@ -30,35 +32,89 @@ type Sqlite3 = Awaited<ReturnType<typeof sqlite3InitModule>>
 
 const DB_FILE = '/jingshi.db'
 
+/**
+ * OPFS SAH Pool 安装超时（毫秒）。
+ *
+ * ⚠️ 这个超时**不是可选的**，缺了它整个初始化会永远卡住。
+ *
+ * 原因：`installOpfsSAHPoolVfs()` 在部分 Android WebView 上会
+ * **既不 resolve 也不 reject** —— 它内部在等同步访问句柄，
+ * 拿不到时就静默挂住。因为没有抛错，try/catch 完全救不了，
+ * 后面那条 `oo1.OpfsDb` 降级路径也永远轮不到执行。
+ *
+ * 表现出来就是「App 永远停在启动页」——而且因为主线程在等 worker 回消息，
+ * 连超时兜底都要等满 15 秒才触发（见 client.ts 的请求超时）。
+ *
+ * 加上超时后，挂住会变成 4 秒内快速失败 → 干净地降级到 Mock，
+ * 用户至少能用上 App。
+ */
+const VFS_INSTALL_TIMEOUT_MS = 4000
+
+/** 给可能挂住的 Promise 加超时（超时后 reject，让上层能走降级分支） */
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  return Promise.race([
+    p,
+    new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`${label}超时（${ms}ms 内未响应）`)), ms)
+    }),
+  ]).finally(() => {
+    if (timer) clearTimeout(timer)
+  }) as Promise<T>
+}
+
 let db: Db | null = null
+
+/** 实际生效的存储后端，供上层展示与排障 */
+let activeVfs = ''
 
 /**
  * 打开数据库：按优先级尝试两种 OPFS VFS，都不可用则抛错（上层会降级到 Mock）
  */
 async function openDatabase(sqlite3: Sqlite3): Promise<Db> {
-  // ① opfs-sahpool：无需 COOP/COEP，部署友好（推荐）
+  const failures: string[] = []
+
+  // ① opfs-sahpool：不需要 COOP/COEP，部署友好（首选）
   if (typeof sqlite3.installOpfsSAHPoolVfs === 'function') {
     try {
-      const pool = await sqlite3.installOpfsSAHPoolVfs({
-        name: 'opfs-sahpool',
-        directory: '/jingshi-db',
-        // 容量需 ≥ 数据库文件数的两倍（含 journal），单个库 6 足够
-        initialCapacity: 6,
-      })
+      const pool = await withTimeout(
+        sqlite3.installOpfsSAHPoolVfs({
+          name: 'opfs-sahpool',
+          directory: '/jingshi-db',
+          // 容量需 ≥ 数据库文件数的两倍（含 journal），单个库 6 足够
+          initialCapacity: 6,
+        }),
+        VFS_INSTALL_TIMEOUT_MS,
+        'opfs-sahpool 安装',
+      )
+      activeVfs = 'opfs-sahpool'
       return new pool.OpfsSAHPoolDb(DB_FILE) as unknown as Db
     } catch (err) {
-      console.warn('[SQLite] opfs-sahpool VFS 不可用，尝试 opfs:', err)
+      const msg = err instanceof Error ? err.message : String(err)
+      failures.push(`opfs-sahpool: ${msg}`)
+      console.warn('[SQLite] opfs-sahpool 不可用，尝试下一种：', msg)
     }
+  } else {
+    failures.push('opfs-sahpool: 当前 sqlite-wasm 版本未提供该 VFS')
   }
 
   // ② opfs：需要 COOP/COEP（Cross-Origin-Opener-Policy / Cross-Origin-Embedder-Policy）
   if (sqlite3.oo1?.OpfsDb) {
-    return new sqlite3.oo1.OpfsDb(DB_FILE) as unknown as Db
+    try {
+      const instance = new sqlite3.oo1.OpfsDb(DB_FILE) as unknown as Db
+      activeVfs = 'opfs'
+      return instance
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      failures.push(`opfs: ${msg}`)
+      console.warn('[SQLite] opfs VFS 不可用：', msg)
+    }
+  } else {
+    failures.push('opfs: 需要 COOP/COEP 响应头（SharedArrayBuffer），当前环境未提供')
   }
 
-  throw new Error(
-    '当前环境不支持持久化 SQLite（OPFS 不可用）。请用 Chrome 108+ / Safari 16.4+，或改用 Mock 数据源。',
-  )
+  // 把每种 VFS 的失败原因一起抛出，便于定位到底卡在哪一种
+  throw new Error(`无可用的持久化存储后端 → ${failures.join(' | ')}`)
 }
 
 self.onmessage = async (e: MessageEvent<Req>) => {
@@ -69,7 +125,8 @@ self.onmessage = async (e: MessageEvent<Req>) => {
       const sqlite3 = await sqlite3InitModule()
       db = await openDatabase(sqlite3)
       db.exec(e.data.schema)
-      self.postMessage({ id, ok: true } satisfies Res)
+      // 回报实际生效的存储后端，便于上层与排障页确认走的是哪条路径
+      self.postMessage({ id, ok: true, note: activeVfs } satisfies Res)
       return
     }
 
