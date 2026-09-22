@@ -47,7 +47,10 @@
  */
 const config = {
   appId: 'cn.jingshi.ai',
-  appName: '经师AI',
+  // ⚠️ 应用显示名。**真正决定桌面图标名称的是
+  //    android/app/src/main/res/values/strings.xml 的 app_name**，
+  //    两处必须保持一致（cap sync 不会自动同步 strings.xml）。
+  appName: '经济师上岸助手',
   webDir: 'dist',
 
   server: {

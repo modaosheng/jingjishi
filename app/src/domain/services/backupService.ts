@@ -123,7 +123,7 @@ export class BackupService {
   async exportToFile(options: ExportOptions = {}): Promise<ExportResult> {
     const { manifest, payload } = await this.deps.backup.export()
     const date = new Date().toISOString().slice(0, 10)
-    const base = `经师AI备份_${date}_${manifest.stats.questionsAnswered}题`
+    const base = `经济师上岸助手备份_${date}_${manifest.stats.questionsAnswered}题`
 
     if (options.password) {
       const encrypted = await encryptBackup(payload, options.password)

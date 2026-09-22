@@ -16,8 +16,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icons/*.png'],
       manifest: {
-        name: '经师 AI · 中级经济师上岸',
-        short_name: '经师AI',
+        name: '经济师上岸助手',
+        short_name: '经济师上岸助手',
         description: '科学计划 + 全真模考 + AI 私教，帮你一次上岸',
         lang: 'zh-CN',
         start_url: '/',
@@ -87,7 +87,23 @@ export default defineConfig({
   worker: { format: 'es' },
   server: { host: true, port: 5173 },
   build: {
-    target: 'es2022',
+    /**
+     * ⚠️ 兼容性优先，**不要随意调高**。
+     *
+     * Capacitor 官方要求 Android System WebView ≥ 60（约对应 Chrome 60 = ES2017）。
+     * 而原先这里写的是 `es2022` —— 它需要 **Chrome 94+**。
+     *
+     * 后果：在 WebView 偏旧的设备上，整个 JS 包会**解析失败**，
+     * 一行代码都不会执行。表现出来是「启动页永远停在初始文案、没有任何反应」，
+     * 而且因为 JS 没跑，连错误浮层都不会出现 —— 排查成本极高。
+     *
+     * 因此目标定在 es2017：既覆盖 Capacitor 支持的最低 WebView，
+     * 又能把 `?.` / `??` 等新语法降级掉（这也是国内 Android 机型
+     * WebView 版本参差不齐时的稳妥选择）。
+     *
+     * 若将来确认最低支持机型更高，再考虑调高；**调高前务必真机实测**。
+     */
+    target: 'es2017',
     rollupOptions: {
       output: {
       // Vite 8 起 manualChunks 必须为函数

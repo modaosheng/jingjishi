@@ -12,10 +12,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="经师AI" />
+    <meta name="apple-mobile-web-app-title" content="经济师上岸助手" />
     <link rel="apple-touch-icon" href="/icons/icon-192.png" />
 
-    <title>经师 AI · 中级经济师</title>
+    <title>经济师上岸助手</title>
 
     <!--
       ══════════════════════════════════════════════════════════════
@@ -118,12 +118,64 @@
     <div id="app">
       <!-- 启动界面：静态渲染，不依赖 JS。Vue 挂载时会被自动清空。 -->
       <div id="boot-screen">
-        <div class="boot__logo">经师 AI</div>
+        <div class="boot__logo">经济师上岸助手</div>
         <div class="boot__spinner"></div>
         <div class="boot__tip" id="boot-tip">正在准备你的学习数据…</div>
         <div class="boot__error" id="boot-error"></div>
       </div>
     </div>
+
+    <!--
+      ══════════════════════════════════════════════════════════════
+      启动自检（⚠️ 必须是普通脚本，不能加 type="module"）
+      ══════════════════════════════════════════════════════════════
+      用途只有一个：**当应用代码没能跑起来时，说清楚是为什么。**
+
+      为什么需要它：如果主模块（/src/main.ts）因为设备 WebView 版本过低
+      等原因解析失败，主模块**一行都不会执行** —— 错误浮层、超时兜底
+      全都不会生效，用户只能看到一个永远停在初始文案的启动页，
+      完全无法判断出了什么事。
+
+      普通脚本不受模块解析失败影响，所以能承担这个职责：
+        ① 每秒更新等待秒数 —— 能证明页面本身是活的（不是整机卡死）
+        ② 超过宽限期仍未启动 → 直接显示设备 WebView 版本，定位兼容性问题
+
+      主模块启动后会设置 window.__appBooted = true，本脚本随即停止干预。
+    -->
+    <script>
+      ;(function () {
+        var startAt = Date.now()
+        var GRACE_MS = 8000
+        var tip = document.getElementById('boot-tip')
+        var box = document.getElementById('boot-error')
+
+        window.setInterval(function () {
+          if (window.__appBooted) return
+          var sec = Math.floor((Date.now() - startAt) / 1000)
+
+          if (sec * 1000 < GRACE_MS) {
+            if (tip) tip.textContent = '正在加载应用代码…（已等待 ' + sec + ' 秒）'
+            return
+          }
+
+          if (tip) tip.textContent = '应用代码未能启动'
+          if (!box || box.style.display === 'block') return
+
+          var ua = navigator.userAgent || ''
+          var chrome = (ua.match(/Chrome\/[\d.]+/) || ['Chrome/未知'])[0]
+          var android = (ua.match(/Android [\d.]+/) || ['Android 未知'])[0]
+          box.style.display = 'block'
+          box.textContent =
+            '应用代码在 ' + GRACE_MS / 1000 + ' 秒内没有启动。\n\n' +
+            '最常见原因：设备 WebView 版本过低。\n' +
+            '更新方法：设置 → 应用管理 → Android System WebView → 更新\n\n' +
+            '诊断信息（反馈时请连同这行一起截图）：\n' +
+            android + '　' + chrome + '\n' +
+            ua
+        }, 1000)
+      })()
+    </script>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

@@ -64,6 +64,10 @@ function installGlobalErrorHandlers(): void {
 /* ==================== 启动流程 ==================== */
 
 async function bootstrap(): Promise<void> {
+  // 告知 index.html 里的启动自检脚本：应用代码已成功启动，可以停止兜底提示了。
+  // ⚠️ 这行必须放在最前面 —— 它出现即证明整个模块图已成功解析并执行。
+  ;(window as unknown as { __appBooted?: boolean }).__appBooted = true
+
   installGlobalErrorHandlers()
 
   // ---------- ① 数据源初始化（带启动预算，超时降级） ----------
