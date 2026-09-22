@@ -34,8 +34,22 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // 不预缓存 HTML：HTML 走 NetworkFirst，保证用户能拿到更新
-        globPatterns: ['**/*.{js,css,svg,woff2}'],
+        /**
+         * ⚠️ `html` 必须包含在内，不能省。
+         *
+         * 原因：下面的 `navigateFallback: '/index.html'` 在生成的 Service Worker 里
+         * 会展开为 `createHandlerBoundToURL("/index.html")` —— 该 API 要求目标 URL
+         * **必须存在于预缓存清单中**，否则 Workbox 会抛 `non-precached-url`，
+         * 导致整个 Service Worker 安装失败。
+         *
+         * 曾经这里只写了 `js,css,svg,woff2`，于是 index.html 不在清单里、
+         * 而 navigateFallback 又指向它 —— 两者互相冲突。
+         *
+         * 至于"不预缓存 HTML 才能及时拿到更新"的顾虑：`registerType: 'autoUpdate'`
+         * 配合下面的 skipWaiting/clientsClaim 会在下次启动时应用新版本，
+         * 不会让用户长期停在旧版。
+         */
+        globPatterns: ['**/*.{js,css,html,svg,woff2}'],
         navigateFallback: '/index.html',
         runtimeCaching: [
           {

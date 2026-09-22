@@ -66,6 +66,33 @@ export async function initDataSource(): Promise<DataSource> {
   return current
 }
 
+/**
+ * 启动兜底：强制使用 Mock 数据源。
+ *
+ * ⚠️ 只有一个用途 —— `initDataSource()` **超出启动预算仍未返回**时，
+ *    保证应用还能起来，而不是让用户一直盯着启动界面。
+ *
+ * 为什么需要它：SQLite(OPFS) 初始化要加载 WASM、执行迁移、灌入知识树与题库，
+ * 在低端机上可能明显偏慢；个别 WebView 的 OPFS 实现还可能长时间无响应。
+ * 这种情况下**宁可降级，也不要让用户用不了 App**。
+ *
+ * 数据说明（不含糊，如实交代）：
+ *   - 题库与知识树在内存中重建，与 SQLite 一致
+ *   - **用户数据（答题状态、答题流水、自建题）仍然写入 localStorage**，
+ *     因此降级期间的学习记录不会丢失
+ *   - 下次启动会重新尝试 SQLite；若恢复成功，历史学习记录仍在
+ *
+ * @param reason 记入降级原因，供「我的 → 存储信息」展示
+ */
+export async function forceMockDataSource(reason: string): Promise<DataSource> {
+  const { mockDataSource } = await import('./mock/mockDataSource')
+  await mockDataSource.init()
+  current = mockDataSource
+  fallbackReason = reason
+  console.warn('[DataSource] 启动兜底触发，已切换为 Mock：', reason)
+  return current
+}
+
 export function getDataSource(): DataSource {
   if (!current) throw new Error('数据源尚未初始化，请先调用 initDataSource()')
   return current
