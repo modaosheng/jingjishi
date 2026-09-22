@@ -50,6 +50,15 @@ const DB_FILE = '/jingshi.db'
  */
 const VFS_INSTALL_TIMEOUT_MS = 4000
 
+/**
+ * SQLite WASM 模块加载超时（毫秒）。
+ *
+ * ⚠️ 同样必需：`sqlite3InitModule()` 要取回并编译 .wasm，
+ *    在部分 WebView 上可能长时间不返回（静默挂住，不抛错）。
+ *    没有超时的话 worker 永远不回消息，主线程只能干等。
+ */
+const WASM_INIT_TIMEOUT_MS = 8000
+
 /** 给可能挂住的 Promise 加超时（超时后 reject，让上层能走降级分支） */
 function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined
@@ -121,8 +130,11 @@ self.onmessage = async (e: MessageEvent<Req>) => {
   const { id } = e.data
   try {
     if (e.data.type === 'init') {
-      // sqlite3InitModule 不接受参数；日志由 worker 自身静默处理
-      const sqlite3 = await sqlite3InitModule()
+      // ⚠️ WASM 模块加载同样要加超时。
+      //    `sqlite3InitModule()` 内部要取回 .wasm 并编译，在部分 WebView 上
+      //    可能长时间不返回 —— 和下面的 VFS 一样，属于「静默挂住」而非报错。
+      //    没有超时的话，worker 永远不回消息，主线程只能干等到自己的请求超时。
+      const sqlite3 = await withTimeout(sqlite3InitModule(), WASM_INIT_TIMEOUT_MS, 'SQLite WASM 加载')
       db = await openDatabase(sqlite3)
       db.exec(e.data.schema)
       // 回报实际生效的存储后端，便于上层与排障页确认走的是哪条路径

@@ -14,6 +14,7 @@ declare module 'vue' {
     AdErrorBoundary: typeof import('./components/ads/AdErrorBoundary.vue')['default']
     AdNoticeDialog: typeof import('./components/ads/AdNoticeDialog.vue')['default']
     AdSlotView: typeof import('./components/ads/AdSlotView.vue')['default']
+    BootGate: typeof import('./components/boot/BootGate.vue')['default']
     ExamCalculator: typeof import('./components/exam/ExamCalculator.vue')['default']
     InstallPrompt: typeof import('./components/pwa/InstallPrompt.vue')['default']
     PracticeConfigSheet: typeof import('./components/practice/PracticeConfigSheet.vue')['default']

@@ -61,8 +61,19 @@ const config = {
   android: {
     // 生产环境保持关闭（仅调试 http 资源时才需要）
     allowMixedContent: false,
-    // WebView 调试：release 包自动关闭，debug 包可用 chrome://inspect
-    webContentsDebuggingEnabled: false,
+    /*
+      ⚠️ 这里**刻意不设置** `webContentsDebuggingEnabled`。
+
+      Capacitor 的默认值是 `isDebug`（见 CapConfig.java）：
+        · debug 包  → 自动开启 WebView 调试
+        · release 包 → 自动关闭（无安全风险）
+
+      之前这里显式写死 `false`，把这个智能默认覆盖掉了，导致 debug 包
+      也无法用 chrome://inspect 查看 JS 报错 —— 真机排障时**完全看不到错误**，
+      只能靠反复重打包试错。
+
+      保持不设置，即可让 debug 包可调试、release 包安全。
+    */
   },
 
   plugins: {

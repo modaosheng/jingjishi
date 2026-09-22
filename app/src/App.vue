@@ -1,21 +1,35 @@
 <template>
-  <router-view />
-  <!-- PWA 安装引导（Android 原生安装流 / iOS 手动步骤） -->
-  <InstallPrompt />
-  <!-- 新版本就绪提示 -->
-  <UpdatePrompt />
-
   <!--
-    广告层（全局，位于路由之上）
-    ⚠️ 三个组件都**不影响 App 挂载**：
-       - SplashAd 只是可选遮罩，1.5 秒内没就绪就自己消失
-       - AdNoticeDialog 是首次启动的一次性告知
-       - AdErrorBoundary 保证广告子树崩溃不冒泡
+    ⚠️ 启动闸门：数据源未就绪时**只渲染启动界面**，不渲染任何业务页面。
+
+    为什么需要它：业务页面在挂载时就会调用数据源（`getDataSource()`），
+    数据源没就绪时调用会抛错。所以必须挡住 —— 但挡住的方式很关键：
+    用**响应式状态**挡，而不是「先 await 再挂载」。
+
+    旧方案（先 await 后挂载）的致命弱点：数据源若卡住，**Vue 根本没挂载**，
+    于是连一个能显示进度的界面都没有，用户只能看到静止的启动页。
+    新方案下 Vue 是**立即挂载**的，任何异常都能显示在界面上。
   -->
-  <AdErrorBoundary>
-    <SplashAd v-if="showSplash" />
-  </AdErrorBoundary>
-  <AdNoticeDialog />
+  <BootGate v-if="!dataReady" />
+  <template v-else>
+    <router-view />
+    <!-- PWA 安装引导（Android 原生安装流 / iOS 手动步骤） -->
+    <InstallPrompt />
+    <!-- 新版本就绪提示 -->
+    <UpdatePrompt />
+
+    <!--
+      广告层（全局，位于路由之上）
+      ⚠️ 三个组件都**不影响 App 挂载**：
+         - SplashAd 只是可选遮罩，1.5 秒内没就绪就自己消失
+         - AdNoticeDialog 是首次启动的一次性告知
+         - AdErrorBoundary 保证广告子树崩溃不冒泡
+    -->
+    <AdErrorBoundary>
+      <SplashAd v-if="showSplash" />
+    </AdErrorBoundary>
+    <AdNoticeDialog />
+  </template>
 </template>
 
 <script setup lang="ts">
@@ -25,6 +39,8 @@ import UpdatePrompt from '@/components/pwa/UpdatePrompt.vue'
 import SplashAd from '@/components/ads/SplashAd.vue'
 import AdNoticeDialog from '@/components/ads/AdNoticeDialog.vue'
 import AdErrorBoundary from '@/components/ads/AdErrorBoundary.vue'
+import BootGate from '@/components/boot/BootGate.vue'
+import { dataReady } from '@/domain/boot/bootState'
 
 /**
  * 开屏仅在**冷启动**时尝试一次。
